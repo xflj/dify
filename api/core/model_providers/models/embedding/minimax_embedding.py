@@ -1,3 +1,6 @@
+from _decimal import Decimal
+import re, string
+
 from langchain.embeddings import MiniMaxEmbeddings
 
 from core.model_providers.error import LLMBadRequestError
@@ -24,3 +27,15 @@ class MinimaxEmbedding(BaseEmbedding):
             return LLMBadRequestError(f"Minimax: {str(ex)}")
         else:
             return ex
+
+    def get_num_tokens(self, text: str) -> float:
+        """Calculate number of tokens."""
+        total = Decimal(0)
+        words = re.findall(r'\b\w+\b|[{}]|\s'.format(re.escape(string.punctuation)), text)
+        for word in words:
+            if word:
+                if '\u4e00' <= word <= '\u9fff':  # if chinese
+                    total += Decimal('1.5')
+                else:
+                    total += Decimal('0.8')
+        return int(total)

@@ -1,4 +1,6 @@
-import decimal
+from _decimal import Decimal
+import re, string
+
 from typing import List, Optional, Any
 
 from langchain.callbacks.manager import Callbacks
@@ -49,7 +51,7 @@ class MinimaxModel(BaseLLM):
         :return:
         """
         prompts = self._get_prompt_from_messages(messages)
-        return max(self._client.get_num_tokens(prompts), 0)
+        return max(self._get_num_tokens(prompts), 0)
 
     def get_currency(self):
         return 'RMB'
@@ -65,3 +67,15 @@ class MinimaxModel(BaseLLM):
             return LLMBadRequestError(f"Minimax: {str(ex)}")
         else:
             return ex
+
+    def _get_num_tokens(self, text: str) -> float:
+        """Calculate number of tokens."""
+        total = Decimal(0)
+        words = re.findall(r'\b\w+\b|[{}]|\s'.format(re.escape(string.punctuation)), text)
+        for word in words:
+            if word:
+                if '\u4e00' <= word <= '\u9fff':  # if chinese
+                    total += Decimal('1.5')
+                else:
+                    total += Decimal('0.8')
+        return int(total)
